@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const fileRoutes = require("../routes/fileRoutes");
-const { connectDB, getDBConnectionStatus } = require("../config/db");
+const fileRoutes = require("./routes/fileRoutes");
+const { connectDB, getDBConnectionStatus } = require("./config/db");
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
