@@ -7,6 +7,7 @@ const {
     DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
 const musicMetadata = require("music-metadata");
+const sharp = require("sharp");
 const getFormattedDate = require("../utils/formatDate");
 
 const BASE_URL = process.env.BASE_URL;
@@ -18,15 +19,21 @@ const uploadFiles = async (req, res) => {
 
         const uploadedFiles = await Promise.all(
             req.files.map(async (file) => {
-                const fileKey = file.originalname.replace(/\s+/g, "_");
+                const fileName = file.originalname.replace(/\(MyMp3Song[s]?\)/gi, "");
+                
+                const fileKey = file.originalname
+                    .replace(/[\s-,]+/g, "-")
+                    .replace(/\(MyMp3Song[s]?\)/gi, "")
+                    .trim();
 
                 let coverImageKey = null;
                 if (file.mimetype.startsWith("audio/")) {
                     const metadata = await musicMetadata.parseBuffer(file.buffer);
 
                     const fileBaseName = file.originalname
-                        .replace(/\s+/g, "_")
-                        .replace(/\.[a-zA-Z0-9]+$/, "");
+                        .replace(/[\s-,]+/g, "-")                    // remove whitespace, hyphens and comma
+                        .replace(/\.[a-zA-Z0-9]+$/, "")              // remove file extension
+                        .trim();
 
                     const year = metadata.common.year || null;
                     const language = metadata.common.language || "Hindi";
@@ -40,10 +47,11 @@ const uploadFiles = async (req, res) => {
                             "image/jpeg" ||
                             "image/png";
 
+                        const { width, height } = await sharp(coverImageBuffer).metadata();
                         const imageExt = imageMimeType.split("/")[1];
 
                         coverImageKey = `${fileBaseName}-${language}-${year ? year : null
-                            }-${getFormattedDate()}.${imageExt}`;
+                            }-${getFormattedDate()}-${width}x${height}.${imageExt}`;
 
                         // Upload cover image to S3
                         await s3.send(
@@ -79,7 +87,7 @@ const uploadFiles = async (req, res) => {
                     : null;
 
                 const newFile = await File.create({
-                    filename: fileKey,
+                    filename: fileName,
                     viewUrl,
                     downloadUrl,
                     coverImageUrl,
@@ -100,7 +108,7 @@ const uploadFiles = async (req, res) => {
 const getFiles = async (req, res) => {
     try {
         const files = await File.find().sort({ uploadedAt: -1 });
-        
+
         res.json(files);
     } catch (error) {
         console.error("Fetch Error:", error);

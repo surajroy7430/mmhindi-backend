@@ -25,6 +25,7 @@
     "multer-s3": "^3.0.1",
     "music-metadata": "^10.9.0",
     "path": "^0.12.7",
+    "sharp": "^0.33.5",
     "uuid": "^11.0.5"
   },
   "description": ""
