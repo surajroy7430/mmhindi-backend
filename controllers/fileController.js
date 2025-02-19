@@ -32,6 +32,7 @@ const uploadFiles = async (req, res) => {
 
                     const fileBaseName = file.originalname
                         .replace(/[\s-,]+/g, "-")                    // remove whitespace, hyphens and comma
+                        .replace(/\(MyMp3Song[s]?\)/gi, "")          
                         .replace(/\.[a-zA-Z0-9]+$/, "")              // remove file extension
                         .trim();
 
