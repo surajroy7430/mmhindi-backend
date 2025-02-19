@@ -24,6 +24,7 @@ const uploadFiles = async (req, res) => {
                 const fileKey = file.originalname
                     .replace(/[\s-,]+/g, "-")
                     .replace(/\(MyMp3Song[s]?\)/gi, "")
+                    .replace(/[\(\)]/g, "")
                     .trim();
 
                 let coverImageKey = null;
@@ -33,6 +34,7 @@ const uploadFiles = async (req, res) => {
                     const fileBaseName = file.originalname
                         .replace(/[\s-,]+/g, "-")                    // remove whitespace, hyphens and comma
                         .replace(/\(MyMp3Song[s]?\)/gi, "")          
+                        .replace(/[\(\)]/g, "")          
                         .replace(/\.[a-zA-Z0-9]+$/, "")              // remove file extension
                         .trim();
 

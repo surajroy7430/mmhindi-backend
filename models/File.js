@@ -8,6 +8,6 @@ const FileSchema = new mongoose.Schema({
     coverImageUrl: String,
     key: String,
     uploadedAt: { type: Date, default: Date.now },
-});
+}, { versionKey: false });
 
 module.exports = mongoose.model("File", FileSchema);
