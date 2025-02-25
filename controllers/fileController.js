@@ -9,8 +9,36 @@ const {
 const musicMetadata = require("music-metadata");
 const sharp = require("sharp");
 const getFormattedDate = require("../utils/formatDate");
+const ffmpeg = require("fluent-ffmpeg");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 const BASE_URL = process.env.BASE_URL;
+
+const compressAudio = (inputBuffer) => {
+    return new Promise((resolve, reject) => {
+        const tempInputPath = path.join(os.tmpdir(), `input-${Date.now()}.mp3`);
+        const tempOutputPath = path.join(os.tmpdir(), `output-${Date.now()}.mp3`);
+
+        fs.writeFileSync(tempInputPath, inputBuffer);
+
+        ffmpeg(tempInputPath)
+            .audioCodec("libmp3lame")
+            .audioBitrate("128k") // Adjust bitrate for compression
+            .on("end", () => {
+                const compressedBuffer = fs.readFileSync(tempOutputPath);
+                fs.unlinkSync(tempInputPath);
+                fs.unlinkSync(tempOutputPath);
+                resolve(compressedBuffer);
+            })
+            .on("error", (err) => {
+                fs.unlinkSync(tempInputPath);
+                reject(err);
+            })
+            .save(tempOutputPath);
+    });
+};
 
 const uploadFiles = async (req, res) => {
     try {
@@ -20,7 +48,7 @@ const uploadFiles = async (req, res) => {
         const uploadedFiles = await Promise.all(
             req.files.map(async (file) => {
                 const fileName = file.originalname.replace(/\(MyMp3Song[s]?\)/gi, "");
-                
+
                 const fileKey = file.originalname
                     .replace(/[\s-,]+/g, "-")
                     .replace(/\(MyMp3Song[s]?\)/gi, "")
@@ -28,13 +56,21 @@ const uploadFiles = async (req, res) => {
                     .trim();
 
                 let coverImageKey = null;
+                let fileBuffer = file.buffer;
+                let fileSize = file.size;
+
+                if (file.mimetype.startsWith("audio/") && fileSize > 4 * 1024 * 1024) {
+                    fileBuffer = await compressAudio(fileBuffer);
+                    fileSize = fileBuffer.length;
+                }
+                
                 if (file.mimetype.startsWith("audio/")) {
-                    const metadata = await musicMetadata.parseBuffer(file.buffer);
+                    const metadata = await musicMetadata.parseBuffer(fileBuffer);
 
                     const fileBaseName = file.originalname
                         .replace(/[\s-,]+/g, "-")                    // remove whitespace, hyphens and comma
-                        .replace(/\(MyMp3Song[s]?\)/gi, "")          
-                        .replace(/[\(\)]/g, "")          
+                        .replace(/\(MyMp3Song[s]?\)/gi, "")
+                        .replace(/[\(\)]/g, "")
                         .replace(/\.[a-zA-Z0-9]+$/, "")              // remove file extension
                         .trim();
 
@@ -74,7 +110,7 @@ const uploadFiles = async (req, res) => {
                     new PutObjectCommand({
                         Bucket: awsBucketName,
                         Key: fileKey,
-                        Body: file.buffer,
+                        Body: fileBuffer,
                         ContentType: file.mimetype,
                         ContentDisposition: `inline; filename="${fileKey}"`, // For view
                     })
@@ -94,6 +130,7 @@ const uploadFiles = async (req, res) => {
                     viewUrl,
                     downloadUrl,
                     coverImageUrl,
+                    fileSize,
                     key: fileKey,
                 });
 
