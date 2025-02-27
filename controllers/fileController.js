@@ -25,7 +25,7 @@ const compressAudio = (inputBuffer) => {
 
         ffmpeg(tempInputPath)
             .audioCodec("libmp3lame")
-            .audioBitrate("192k") // bitrate for compression
+            .audioBitrate("128k") // bitrate for compression
             .on("end", () => {
                 const compressedBuffer = fs.readFileSync(tempOutputPath);
                 fs.unlinkSync(tempInputPath);
