@@ -6,7 +6,7 @@ const FileSchema = new mongoose.Schema({
     viewUrl: String,
     downloadUrl: String,
     coverImageUrl: String,
-    fileSize: String,
+    fileSize: Number,
     key: String,
     uploadedAt: { type: Date, default: Date.now },
 }, { versionKey: false });
